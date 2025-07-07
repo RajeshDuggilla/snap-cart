@@ -22,7 +22,7 @@ app.use("/api/orders", orderRoutes);
 
 app.get("/", (req, res) => res.send("SnapCart API Running"));
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server on http://localhost:${PORT}`));
 
 module.exports = app; 
