@@ -1,0 +1,51 @@
+# POST http://localhost:3000/api/products/
+# Authorization: Bearer eyJpZCI6IjY4NmIzY2U4NTNkNGJhYjc2NmVlMzQzNSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1MTg1ODQ0NSwiZXhwIjoxNzUxODYyMDQ1fQ.V28U1l3sdacTV75jWHb5DaPktioivSrbznoXZD0fU4s
+# Content-Type: application/json
+
+# // {
+# //     "username": "John Doe",
+# //     "email": "JonDoe@gmail.com",
+# //     "password": "password123"
+# // }
+
+# {
+#   "name": "Wireless Mouse",
+#   "price": 699,
+#   "category": "electronics",
+#   "description": "Ergonomic wireless mouse with 1600 DPI sensitivity."
+# }
+
+
+###
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+    "username": "rajesh",
+    "email": "rajesh@gmail.com",
+    "password":"rajesh",
+    "role": "admin"
+
+}
+
+###
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "rajesh@gmail.com",
+    "password":"rajesh"
+}
+
+###
+POST http://localhost:3000/api/products/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NmI1ZDdkYzMyMGQ1NzdhOGUwYWNiMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1MTg2Njc2MH0.TAVYFcXl4fzwivWUSmHkjXhs0jZm5ywrmFGQx5kXlP8
+Content-Type: application/json
+
+
+{
+    "name": "Wireless Mouse",
+    "price": 699,
+    "category": "electronics",
+    "description": "Ergonomic wireless mouse with 1600 DPI sensitivity."
+}
