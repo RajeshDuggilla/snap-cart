@@ -1822,6 +1822,7 @@ registerForm.onsubmit = async e => {
   e.preventDefault();
   const res = await req("POST", "/api/auth/register", Object.fromEntries(new FormData(e.target)));
   toast(res.message || res.error, !!res.error);
+  e.target.reset();
 };
 
 // Login
@@ -1850,6 +1851,7 @@ loginForm.onsubmit = async e => {
   } else {
     toast(res.error, true);
   }
+  e.target.reset();
 };
 
 function logout() {
