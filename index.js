@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const dotenv = require("dotenv");
 const connectDB = require("./utils/db");
 
@@ -20,18 +21,17 @@ app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 
-app.get("/", (req, res) => res.send("SnapCart API Running"));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.use(express.static(path.join(__dirname, "public")));
+// app.get("/", (req, res) => {
+//   res.send("Welcome to the SnapShop API");
+// });
 
 const PORT = process.env.PORT || 3000;
+console.log(PORT);
 app.listen(PORT, () => console.log(`Server on http://localhost:${PORT}`));
-
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught Exception:", err);
-});
-
-process.on("unhandledRejection", (err) => {
-  console.error("Unhandled Rejection:", err);
-});
-
 
 module.exports = app; 

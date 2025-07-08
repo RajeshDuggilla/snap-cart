@@ -1,6 +1,3 @@
-
-
-
 ###
 POST http://localhost:3000/api/auth/register
 Content-Type: application/json
@@ -24,13 +21,58 @@ Content-Type: application/json
 
 ###
 POST http://localhost:3000/api/products/
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NmI1ZDdkYzMyMGQ1NzdhOGUwYWNiMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1MTg2Njc2MH0.TAVYFcXl4fzwivWUSmHkjXhs0jZm5ywrmFGQx5kXlP8
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NmM5NzVlZTFmOGE4OWRkYjdkOGVkNyIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1MTk0NzEwOH0.Rv9o_G_PsjPdE4EOcDeN245xFf3tVbbXuTxHI279u6k
+Content-Type: application/json
+{ "name": "DANVOUY Womens T Shirt Casual Cotton Short", "category": "women's clothing", "price": 12.99, "stock": 145 }
+
+
+ 
+
+###
+//user details
+POST http://localhost:3000/api/auth/register
 Content-Type: application/json
 
+{
+    "username": "ranjith",
+    "email": "ranjith@gmail.com",
+    "password":"ranjith",
+    "role": "customer"
+}
+
+###
+POST http://localhost:3000/api/auth/login 
+Content-Type: application/json
 
 {
-    "name": "Wireless Mouse",
-    "price": 699,
-    "category": "electronics",
-    "description": "Ergonomic wireless mouse with 1600 DPI sensitivity."
+    "email": "ranjith@gmail.com",
+    "password":"ranjith"
 }
+
+###
+//add to cart
+POST http://localhost:3000/api/cart/add 
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NmM5ZjYxZDJhNThmM2E1NjdiNGMyNSIsInJvbGUiOiJjdXN0b21lciIsImlhdCI6MTc1MTk0OTE5MH0.5RMS031PNG2mjkeyRXnhdRPi6T9ZwqpuQp0i92ULiKk
+Content-Type: application/json
+
+{
+    "productId": "686c99d8e1f8a89ddb7d8ee2",
+    "quantity": 3
+}
+
+###
+//get cart details
+GET http://localhost:3000/api/cart/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NmM5ZjYxZDJhNThmM2E1NjdiNGMyNSIsInJvbGUiOiJjdXN0b21lciIsImlhdCI6MTc1MTk0OTE5MH0.5RMS031PNG2mjkeyRXnhdRPi6T9ZwqpuQp0i92ULiKk
+
+###
+//update cart
+PUT http://localhost:3000/api/cart/update
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NmM5ZjYxZDJhNThmM2E1NjdiNGMyNSIsInJvbGUiOiJjdXN0b21lciIsImlhdCI6MTc1MTk0OTE5MH0.5RMS031PNG2mjkeyRXnhdRPi6T9ZwqpuQp0i92ULiKk
+Content-Type: application/json
+
+{
+    "productId": "686c99d8e1f8a89ddb7d8ee2",
+    "quantity": 3
+}
+  

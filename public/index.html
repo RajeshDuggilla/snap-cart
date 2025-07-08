@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -82,12 +82,7 @@
         <form id="registerForm">
           <input placeholder="Name" name="name" required />
           <input placeholder="Email" name="email" type="email" required />
-          <input
-            placeholder="Password"
-            name="password"
-            type="password"
-            required
-          />
+          <input placeholder="Password" name="password" type="password" required />
           <select name="role">
             <option value="customer">Customer</option>
             <option value="admin">Admin</option>
@@ -98,15 +93,12 @@
         <h3>Login</h3>
         <form id="loginForm">
           <input placeholder="Email" name="email" type="email" required />
-          <input
-            placeholder="Password"
-            name="password"
-            type="password"
-            required
-          />
+          <input placeholder="Password" name="password" type="password" required />
           <button type="submit">Login</button>
         </form>
       </div>
+
+      
 
       <div id="mainSection" class="hidden">
         <button onclick="logout()">🚪 Logout</button>
@@ -118,12 +110,7 @@
         </div>
 
         <h3>Products</h3>
-        <input
-          type="text"
-          id="searchInput"
-          placeholder="Search by name or category"
-          oninput="searchProducts()"
-        />
+        <input type="text" id="searchInput" placeholder="Search by name or category" oninput="searchProducts()" />
         <button onclick="loadProducts()">View All</button>
         <ul id="productList"></ul>
         <div class="pagination" id="paginationControls"></div>
@@ -142,12 +129,7 @@
         <h3>Add to Cart</h3>
         <form id="addToCartForm">
           <input placeholder="Product ID" name="product" required />
-          <input
-            placeholder="Quantity"
-            name="quantity"
-            type="number"
-            required
-          />
+          <input placeholder="Quantity" name="quantity" type="number" required />
           <button type="submit">Add to Cart</button>
         </form>
 
@@ -163,32 +145,32 @@
       <div id="loader">⏳ Loading...</div>
     </div>
 
-    <script>
+   <script>
   const app = {
     http: {
       get: async (url) => {
         const res = await fetch(url, {
           headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token") || ""}`
-          }
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
         });
         if (!res.ok) throw new Error("Failed to fetch data");
         return res.json();
-      }
-    }
+      },
+    },
   };
 
   let currentPage = 1;
   const limit = 5;
 
-  async function loadProducts(page = 1, search = '') {
+  async function loadProducts(page = 1, search = "") {
     currentPage = page;
     try {
       const query = `?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`;
       const products = await app.http.get(`/api/products${query}`);
       const ul = document.getElementById("productList");
       ul.innerHTML = "";
-      (products.data || []).forEach(p => {
+      (products.data || []).forEach((p) => {
         const li = document.createElement("li");
         li.innerText = `${p.name} - ₹${p.price} - ${p.category} - ID: ${p._id}`;
         ul.appendChild(li);
@@ -222,6 +204,19 @@
     output.textContent = message;
   }
 
+  document.getElementById("registerForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData.entries());
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    showOutput(res.ok ? "✅ Registered successfully. Please log in." : data.message, res.ok);
+  };
+
   document.getElementById("loginForm").onsubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -235,31 +230,1758 @@
     if (!res.ok) return showOutput(data.message || "Login failed", false);
 
     localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
     document.getElementById("authSection").classList.add("hidden");
     document.getElementById("mainSection").classList.remove("hidden");
     document.getElementById("tokenOutput").textContent = data.token;
     document.getElementById("roleOutput").textContent = `Role: ${data.user.role}`;
+    document.getElementById("userName").textContent = `Name: ${data.user.name}`;
+    document.getElementById("userEmail").textContent = `Email: ${data.user.email}`;
+    document.getElementById("userRole").textContent = `Role: ${data.user.role}`;
 
     if (data.user.role === "admin") {
       document.getElementById("adminSection").classList.remove("hidden");
     }
 
-    loadProducts(); // 🔥 Load products on successful login
+    loadProducts();
   };
 
-  // ✅ Optional: Auto-login if token exists
-  if (localStorage.getItem("token")) {
-    document.getElementById("authSection").classList.add("hidden");
-    document.getElementById("mainSection").classList.remove("hidden");
-    document.getElementById("tokenOutput").textContent = localStorage.getItem("token");
-    loadProducts();
+  document.getElementById("addProductForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData.entries());
+
+    const res = await fetch("/api/products", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    showOutput(res.ok ? "✅ Product added" : data.message, res.ok);
+    if (res.ok) loadProducts();
+  };
+
+  document.getElementById("addToCartForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData.entries());
+
+    const res = await fetch("/api/cart", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    showOutput(res.ok ? "✅ Added to cart" : data.message, res.ok);
+  };
+
+  async function viewCart() {
+    const res = await fetch("/api/cart", {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    const data = await res.json();
+    const ul = document.getElementById("cartList");
+    ul.innerHTML = "";
+
+    if (!res.ok) return showOutput(data.message, false);
+
+    (data.items || []).forEach((item) => {
+      const li = document.createElement("li");
+      li.textContent = `${item.product.name} x ${item.quantity} = ₹${item.quantity * item.product.price}`;
+      ul.appendChild(li);
+    });
+  }
+
+  async function placeOrder() {
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    const data = await res.json();
+    showOutput(res.ok ? "✅ Order placed!" : data.message, res.ok);
+    if (res.ok) document.getElementById("cartList").innerHTML = "";
   }
 
   function logout() {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     location.reload();
+  }
+
+  if (localStorage.getItem("token")) {
+    const user = JSON.parse(localStorage.getItem("user"));
+    document.getElementById("authSection").classList.add("hidden");
+    document.getElementById("mainSection").classList.remove("hidden");
+    document.getElementById("tokenOutput").textContent = localStorage.getItem("token");
+    document.getElementById("userName").textContent = `Name: ${user.name}`;
+    document.getElementById("userEmail").textContent = `Email: ${user.email}`;
+    document.getElementById("userRole").textContent = `Role: ${user.role}`;
+    loadProducts();
   }
 </script>
 
   </body>
+</html> -->
+<!-- <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SnapCart Frontend</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 2rem;
+        background-color: #f5f5f5;
+      }
+      h2,
+      h3 {
+        color: #333;
+      }
+      form,
+      button {
+        margin-bottom: 1rem;
+      }
+      input,
+      select,
+      button {
+        padding: 0.5rem;
+        margin: 0.25rem;
+      }
+      ul {
+        padding-left: 1rem;
+      }
+      .admin-only {
+        border: 1px dashed #d33;
+        padding: 1rem;
+        background-color: #ffe5e5;
+      }
+      .container {
+        max-width: 700px;
+        margin: auto;
+        background-color: #fff;
+        padding: 2rem;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .token-box {
+        background: #eee;
+        padding: 1rem;
+        font-family: monospace;
+        overflow-wrap: break-word;
+      }
+      #output {
+        margin-top: 1rem;
+        padding: 1rem;
+        font-family: monospace;
+        border-radius: 4px;
+      }
+      .hidden {
+        display: none;
+      }
+      .pagination button {
+        padding: 0.5rem 1rem;
+        margin: 0.25rem;
+        border: none;
+        background-color: #007bff;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .pagination button.active {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>🛒 SnapCart</h2>
+
+      <div id="authSection">
+        <h3>Register</h3>
+        <form id="registerForm">
+          <input placeholder="Name" name="name" required />
+          <input placeholder="Email" name="email" type="email" required />
+          <input placeholder="Password" name="password" type="password" required />
+          <select name="role">
+            <option value="customer">Customer</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button type="submit">Register</button>
+        </form>
+
+        <h3>Login</h3>
+        <form id="loginForm">
+          <input placeholder="Email" name="email" type="email" required />
+          <input placeholder="Password" name="password" type="password" required />
+          <button type="submit">Login</button>
+        </form>
+      </div>
+
+      <div id="mainSection" class="hidden">
+        <button onclick="logout()">🚪 Logout</button>
+
+        <div class="token-box">
+          <p><strong>Token:</strong></p>
+          <p id="tokenOutput"></p>
+          <p id="roleOutput"></p>
+        </div>
+
+        <h3>Products</h3>
+        <input type="text" id="searchInput" placeholder="Search by name or category" oninput="searchProducts()" />
+        <button onclick="loadProducts()">View All</button>
+        <ul id="productList"></ul>
+        <div class="pagination" id="paginationControls"></div>
+
+        <div class="admin-only hidden" id="adminSection">
+          <h3>Add Product (Admin Only)</h3>
+          <form id="addProductForm">
+            <input placeholder="Name" name="name" required />
+            <input placeholder="Category" name="category" required />
+            <input placeholder="Price" name="price" type="number" required />
+            <input placeholder="Stock" name="stock" type="number" required />
+            <button type="submit">Add Product</button>
+          </form>
+        </div>
+
+        <h3>Add to Cart</h3>
+        <form id="addToCartForm">
+          <input placeholder="Product ID" name="product" required />
+          <input placeholder="Quantity" name="quantity" type="number" required />
+          <button type="submit">Add to Cart</button>
+        </form>
+
+        <h3>Your Cart</h3>
+        <button onclick="viewCart()">View Cart</button>
+        <ul id="cartList"></ul>
+
+        <h3>Place Order</h3>
+        <button onclick="placeOrder()">Place Order</button>
+      </div>
+
+      <div id="output"></div>
+    </div>
+
+    <script>
+      function showOutput(message, success = true) {
+        const output = document.getElementById("output");
+        output.textContent = message;
+        output.style.backgroundColor = success ? "#e3f6ff" : "#ffe5e5";
+        output.style.border = success ? "1px solid #00bfff" : "1px solid #ff4d4d";
+        setTimeout(() => {
+          output.textContent = "";
+          output.style.backgroundColor = "transparent";
+          output.style.border = "none";
+        }, 4000);
+      }
+
+      const app = {
+        http: {
+          get: async (url) => {
+            const res = await fetch(url, {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+              },
+            });
+            if (!res.ok) throw new Error("Failed to fetch data");
+            return res.json();
+          },
+        },
+      };
+
+      let currentPage = 1;
+      const limit = 5;
+
+      async function loadProducts(page = 1, search = "") {
+        currentPage = page;
+        try {
+          const query = `?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`;
+          const products = await app.http.get(`/api/products${query}`);
+          const ul = document.getElementById("productList");
+          ul.innerHTML = "";
+          (products.data || []).forEach((p) => {
+            const li = document.createElement("li");
+            li.innerText = `${p.name} - ₹${p.price} - ${p.category} - ID: ${p._id}`;
+            ul.appendChild(li);
+          });
+          renderPagination(products.totalPages || 1);
+        } catch (err) {
+          showOutput(err.message, false);
+        }
+      }
+
+      function renderPagination(totalPages) {
+        const container = document.getElementById("paginationControls");
+        container.innerHTML = "";
+        for (let i = 1; i <= totalPages; i++) {
+          const btn = document.createElement("button");
+          btn.textContent = i;
+          if (i === currentPage) btn.classList.add("active");
+          btn.onclick = () => loadProducts(i, document.getElementById("searchInput").value);
+          container.appendChild(btn);
+        }
+      }
+
+      function searchProducts() {
+        const searchTerm = document.getElementById("searchInput").value;
+        loadProducts(1, searchTerm);
+      }
+
+      document.getElementById("registerForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const payload = Object.fromEntries(formData.entries());
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        showOutput(res.ok ? "✅ Registered successfully." : data.message, res.ok);
+      };
+
+      document.getElementById("loginForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const credentials = Object.fromEntries(formData.entries());
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(credentials),
+        });
+        const data = await res.json();
+        if (!res.ok) return showOutput(data.message || "Login failed", false);
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        document.getElementById("authSection").classList.add("hidden");
+        document.getElementById("mainSection").classList.remove("hidden");
+        document.getElementById("tokenOutput").textContent = data.token;
+        document.getElementById("roleOutput").textContent = `Role: ${data.user.role}`;
+
+        if (data.user.role === "admin") {
+          document.getElementById("adminSection").classList.remove("hidden");
+        }
+
+        showOutput("✅ Login successful.");
+        loadProducts();
+      };
+
+      document.getElementById("addProductForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const payload = Object.fromEntries(formData.entries());
+        const res = await fetch("/api/products", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        showOutput(res.ok ? "✅ Product added." : data.message, res.ok);
+        if (res.ok) loadProducts();
+      };
+
+      document.getElementById("addToCartForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const payload = Object.fromEntries(formData.entries());
+        const res = await fetch("/api/cart", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        showOutput(res.ok ? "✅ Added to cart." : data.message, res.ok);
+      };
+
+      async function viewCart() {
+        const res = await fetch("/api/cart", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        const data = await res.json();
+        const ul = document.getElementById("cartList");
+        ul.innerHTML = "";
+        if (!res.ok) return showOutput(data.message, false);
+
+        (data.items || []).forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = `${item.product.name} x ${item.quantity} = ₹${item.quantity * item.product.price}`;
+          ul.appendChild(li);
+        });
+      }
+
+      async function placeOrder() {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        const data = await res.json();
+        showOutput(res.ok ? "✅ Order placed!" : data.message, res.ok);
+        if (res.ok) document.getElementById("cartList").innerHTML = "";
+      }
+
+      function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        showOutput("👋 Logged out.");
+        setTimeout(() => location.reload(), 1500);
+      }
+
+      if (localStorage.getItem("token")) {
+        const user = JSON.parse(localStorage.getItem("user"));
+        document.getElementById("authSection").classList.add("hidden");
+        document.getElementById("mainSection").classList.remove("hidden");
+        document.getElementById("tokenOutput").textContent = localStorage.getItem("token");
+        document.getElementById("roleOutput").textContent = `Role: ${user.role}`;
+        if (user.role === "admin") document.getElementById("adminSection").classList.remove("hidden");
+        loadProducts();
+      }
+    </script>
+  </body>
+</html> -->
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SnapCart Frontend</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background-color: #f5f5f5;
+    }
+    h2, h3 {
+      color: #333;
+    }
+    form, button {
+      margin-bottom: 1rem;
+    }
+    input, select, button {
+      padding: 0.5rem;
+      margin: 0.25rem;
+    }
+    ul {
+      padding-left: 1rem;
+    }
+    .admin-only {
+      border: 1px dashed #d33;
+      padding: 1rem;
+      background-color: #ffe5e5;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background-color: #fff;
+      padding: 2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .token-box {
+      background: #eee;
+      padding: 1rem;
+      font-family: monospace;
+      overflow-wrap: break-word;
+    }
+    #output {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #e3f6ff;
+      color: #333;
+      font-family: monospace;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🛒 SnapCart</h2>
+
+    <div id="authSection">
+      <h3>Register</h3>
+      <form id="registerForm">
+        <input placeholder="Name" name="name" required />
+        <input placeholder="Email" name="email" type="email" required />
+        <input placeholder="Password" name="password" type="password" required />
+        <select name="role">
+          <option value="customer">Customer</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button type="submit">Register</button>
+      </form>
+
+      <h3>Login</h3>
+      <form id="loginForm">
+        <input placeholder="Email" name="email" type="email" required />
+        <input placeholder="Password" name="password" type="password" required />
+        <button type="submit">Login</button>
+      </form>
+    </div>
+
+    <div id="mainSection" class="hidden">
+      <button onclick="logout()">🚪 Logout</button>
+
+      <div class="token-box">
+        <p><strong>Token:</strong></p>
+        <p id="tokenOutput"></p>
+        <p id="roleOutput"></p>
+      </div>
+
+      <h3>Products</h3>
+      <ul id="productList"></ul>
+
+      <div class="admin-only hidden" id="adminSection">
+        <h3>Add Product (Admin Only)</h3>
+        <form id="addProductForm">
+          <input placeholder="Name" name="name" required />
+          <input placeholder="Category" name="category" required />
+          <input placeholder="Price" name="price" type="number" required />
+          <input placeholder="Stock" name="stock" type="number" required />
+          <button type="submit">Add Product</button>
+        </form>
+      </div>
+
+      <h3>Add to Cart</h3>
+      <form id="addToCartForm">
+        <input placeholder="Product ID" name="product" required />
+        <input placeholder="Quantity" name="quantity" type="number" required />
+        <button type="submit">Add to Cart</button>
+      </form>
+
+      <h3>Your Cart</h3>
+      <button onclick="viewCart()">View Cart</button>
+      <ul id="cartList"></ul>
+
+      <h3>Place Order</h3>
+      <button onclick="placeOrder()">Place Order</button>
+    </div>
+
+    <div id="output"></div>
+  </div>
+
+  <script>
+    const API_BASE = "https://snap-cart.onrender.com/"; // ✅ Backend server
+
+    function showOutput(message, success = true) {
+      const output = document.getElementById("output");
+      output.style.backgroundColor = success ? "#e3f6ff" : "#ffe5e5";
+      output.textContent = message;
+    }
+
+    document.getElementById("registerForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target));
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      let out = await tryParse(res);
+      showOutput(res.ok ? "✅ Registered. Please login." : out.message, res.ok);
+    };
+
+    document.getElementById("loginForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target));
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      let out = await tryParse(res);
+      if (!res.ok) return showOutput(out.message || "Login failed", false);
+
+      localStorage.setItem("token", out.token);
+      localStorage.setItem("user", JSON.stringify(out.user));
+      showOutput("✅ Login successful");
+      toggleUI(true, out.user.role);
+      loadProducts();
+    };
+
+    async function loadProducts() {
+      const res = await fetch(`${API_BASE}/api/products`);
+      const data = await res.json();
+      const ul = document.getElementById("productList");
+      ul.innerHTML = "";
+      data.forEach((p) => {
+        const li = document.createElement("li");
+        li.textContent = `${p.name} - ₹${p.price} - ${p.category} - ID: ${p._id}`;
+        ul.appendChild(li);
+      });
+    }
+
+    document.getElementById("addProductForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(e.target));
+      const res = await fetch(`${API_BASE}/api/products`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      let out = await tryParse(res);
+      showOutput(res.ok ? "✅ Product added" : out.message, res.ok);
+      if (res.ok) loadProducts();
+    };
+
+    document.getElementById("addToCartForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(e.target));
+      const res = await fetch(`${API_BASE}/api/cart`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      let out = await tryParse(res);
+      showOutput(res.ok ? "✅ Added to cart" : out.message, res.ok);
+    };
+
+    async function viewCart() {
+      const res = await fetch(`${API_BASE}/api/cart`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      let data = await res.json();
+      const ul = document.getElementById("cartList");
+      ul.innerHTML = "";
+      (data.items || []).forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = `${item.product.name} x ${item.quantity} = ₹${item.quantity * item.product.price}`;
+        ul.appendChild(li);
+      });
+    }
+
+    async function placeOrder() {
+      const res = await fetch(`${API_BASE}/api/orders`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      let out = await tryParse(res);
+      showOutput(res.ok ? "✅ Order placed!" : out.message, res.ok);
+      if (res.ok) document.getElementById("cartList").innerHTML = "";
+    }
+
+    function logout() {
+      localStorage.clear();
+      showOutput("🚪 Logged out");
+      toggleUI(false);
+    }
+
+    function toggleUI(loggedIn, role = "") {
+      document.getElementById("authSection").classList.toggle("hidden", loggedIn);
+      document.getElementById("mainSection").classList.toggle("hidden", !loggedIn);
+      document.getElementById("adminSection").classList.toggle("hidden", role !== "admin");
+      document.getElementById("tokenOutput").textContent = localStorage.getItem("token") || "";
+      document.getElementById("roleOutput").textContent = role ? `Role: ${role}` : "";
+    }
+
+    async function tryParse(res) {
+      try {
+        return await res.json();
+      } catch {
+        return { message: "Unexpected error" };
+      }
+    }
+
+    // Auto-login if token stored
+    (() => {
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (token && user.role) {
+        toggleUI(true, user.role);
+        loadProducts();
+      }
+    })();
+  </script>
+</body>
+</html> -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SnapCart Frontend</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background-color: #f5f5f5;
+    }
+    h2, h3 {
+      color: #333;
+    }
+    form, button {
+      margin-bottom: 1rem;
+    }
+    input, select, button {
+      padding: 0.5rem;
+      margin: 0.25rem;
+    }
+    ul {
+      padding-left: 1rem;
+    }
+    .admin-only {
+      border: 1px dashed #d33;
+      padding: 1rem;
+      background-color: #ffe5e5;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background-color: #fff;
+      padding: 2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .token-box {
+      background: #eee;
+      padding: 1rem;
+      font-family: monospace;
+      overflow-wrap: break-word;
+    }
+    #output {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #e3f6ff;
+      color: #333;
+      font-family: monospace;
+    }
+    .hidden {
+      display: none;
+    }
+    .pagination button {
+      padding: 0.5rem 1rem;
+      margin: 0.25rem;
+      border: none;
+      background-color: #007bff;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .pagination button.active {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>🛒 SnapCart</h2>
+
+  <div id="authSection">
+    <h3>Register</h3>
+    <form id="registerForm">
+      <input name="name" placeholder="Name" required />
+      <input name="email" type="email" placeholder="Email" required />
+      <input name="password" type="password" placeholder="Password" required />
+      <select name="role">
+        <option value="customer">Customer</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button type="submit">Register</button>
+    </form>
+
+    <h3>Login</h3>
+    <form id="loginForm">
+      <input name="email" type="email" placeholder="Email" required />
+      <input name="password" type="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <div id="mainSection" class="hidden">
+    <button onclick="logout()">🚪 Logout</button>
+
+    <div class="token-box">
+      <p><strong>Token:</strong></p>
+      <p id="tokenOutput"></p>
+      <p id="roleOutput"></p>
+    </div>
+
+    <h3>Products</h3>
+    <input id="searchInput" type="text" placeholder="Search by name or category" oninput="searchProducts()" />
+    <button onclick="loadProducts()">View All</button>
+    <ul id="productList"></ul>
+    <div class="pagination" id="paginationControls"></div>
+
+    <div id="adminSection" class="admin-only hidden">
+      <h3>Add Product (Admin Only)</h3>
+      <form id="addProductForm">
+        <input name="name" placeholder="Name" required />
+        <input name="category" placeholder="Category" required />
+        <input name="price" type="number" placeholder="Price" required />
+        <input name="stock" type="number" placeholder="Stock" required />
+        <button type="submit">Add Product</button>
+      </form>
+    </div>
+
+    <h3>Add to Cart</h3>
+    <form id="addToCartForm">
+      <input name="product" placeholder="Product ID" required />
+      <input name="quantity" type="number" placeholder="Quantity" required />
+      <button type="submit">Add to Cart</button>
+    </form>
+
+    <h3>Your Cart</h3>
+    <button onclick="viewCart()">View Cart</button>
+    <ul id="cartList"></ul>
+
+    <h3>Place Order</h3>
+    <button onclick="placeOrder()">Place Order</button>
+  </div>
+
+  <div id="output"></div>
+</div>
+
+<script>
+  const API = "http://localhost:3000"; // Set base API path if needed
+  let currentPage = 1;
+  const limit = 5;
+
+  const app = {
+    http: {
+      get: async (url) => {
+        const res = await fetch(API + url, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        });
+        return await res.json();
+      },
+      post: async (url, data) => {
+        const res = await fetch(API + url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+          body: JSON.stringify(data),
+        });
+        try {
+          return await res.json();
+        } catch {
+          return { error: "Invalid server response" };
+        }
+      },
+    },
+  };
+
+  function showOutput(msg, success = true) {
+    const out = document.getElementById("output");
+    out.style.backgroundColor = success ? "#e3f6ff" : "#ffe5e5";
+    out.textContent = msg;
+  }
+
+  // AUTH
+  document.getElementById("registerForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    const res = await app.http.post("/api/auth/register", payload);
+    console.log(res)
+    showOutput(res.message || "Registered", !res.error);
+  };
+
+  document.getElementById("loginForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    const res = await app.http.post("/api/auth/login", payload);
+    console.log(res)
+    if (res.token) {
+      localStorage.setItem("token", res.token);
+      localStorage.setItem("user", JSON.stringify(res.user || {}));
+      document.getElementById("authSection").classList.add("hidden");
+      document.getElementById("mainSection").classList.remove("hidden");
+      document.getElementById("tokenOutput").textContent = res.token;
+      document.getElementById("roleOutput").textContent = "Role: " + res.user?.role;
+      if (res.user?.role === "admin") {
+        document.getElementById("adminSection").classList.remove("hidden");
+      }
+      loadProducts();
+      showOutput("Login successful");
+    } else {
+      showOutput(res.error || "Login failed", false);
+    }
+  };
+
+  function logout() {
+    localStorage.clear();
+    location.reload();
+  }
+
+  // PRODUCTS
+  async function loadProducts(page = 1, search = "") {
+    currentPage = page;
+    const query = `?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`;
+    const res = await app.http.get("/api/products" + query);
+    const ul = document.getElementById("productList");
+    ul.innerHTML = "";
+    (res || []).forEach(p => {
+      const li = document.createElement("li");
+      li.textContent = `${p.name} - ₹${p.price} - ${p.category} - ID: ${p._id}`;
+      ul.appendChild(li);
+    });
+  }
+
+  function searchProducts() {
+    const search = document.getElementById("searchInput").value;
+    loadProducts(1, search);
+  }
+
+  document.getElementById("addProductForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    const res = await app.http.post("/api/products", data);
+    showOutput(res.message || "Product added", !res.error);
+    if (!res.error) loadProducts();
+  };
+
+  // CART
+  document.getElementById("addToCartForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    const res = await app.http.post("/api/cart", data);
+    showOutput(res.message || "Added to cart", !res.error);
+  };
+
+  async function viewCart() {
+    const res = await app.http.get("/api/cart");
+    const ul = document.getElementById("cartList");
+    ul.innerHTML = "";
+    (res.items || []).forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.product.name} x ${item.quantity} = ₹${item.product.price * item.quantity}`;
+      ul.appendChild(li);
+    });
+  }
+
+  async function placeOrder() {
+    const res = await app.http.post("/api/orders", {});
+    showOutput(res.message || "Order placed", !res.error);
+    if (!res.error) document.getElementById("cartList").innerHTML = "";
+  }
+
+  // Auto-login check
+  if (localStorage.getItem("token")) {
+    const user = JSON.parse(localStorage.getItem("user"));
+    document.getElementById("authSection").classList.add("hidden");
+    document.getElementById("mainSection").classList.remove("hidden");
+    document.getElementById("tokenOutput").textContent = localStorage.getItem("token");
+    document.getElementById("roleOutput").textContent = "Role: " + user.role;
+    if (user.role === "admin") {
+      document.getElementById("adminSection").classList.remove("hidden");
+    }
+    loadProducts();
+  }
+</script>
+</body>
+</html>  -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SnapCart Frontend</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background-color: #f5f5f5;
+    }
+    h2, h3 {
+      color: #333;
+    }
+    form, button {
+      margin-bottom: 1rem;
+    }
+    input, select, button {
+      padding: 0.5rem;
+      margin: 0.25rem;
+    }
+    ul {
+      padding-left: 1rem;
+    }
+    .admin-only {
+      border: 1px dashed #d33;
+      padding: 1rem;
+      background-color: #ffe5e5;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background-color: #fff;
+      padding: 2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #output {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #e3f6ff;
+      color: #333;
+      font-family: monospace;
+    }
+    .hidden {
+      display: none;
+    }
+    .pagination button {
+      padding: 0.5rem 1rem;
+      margin: 0.25rem;
+      border: none;
+      background-color: #007bff;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .pagination button.active {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>🛒 SnapCart</h2>
+
+  <div id="authSection">
+    <h3>Register</h3>
+    <form id="registerForm">
+      <input name="username" placeholder="Username" required />
+      <input name="email" type="email" placeholder="Email" required />
+      <input name="password" type="password" placeholder="Password" required />
+      <select name="role">
+        <option value="customer">Customer</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button type="submit">Register</button>
+    </form>
+
+    <h3>Login</h3>
+    <form id="loginForm">
+      <input name="email" type="email" placeholder="Email" required />
+      <input name="password" type="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <div id="mainSection" class="hidden">
+    <button onclick="logout()">🚪 Logout</button>
+
+    Dev only: Uncomment for debugging token
+    <div class="token-box">
+      <p><strong>Token:</strong></p>
+      <p id="tokenOutput"></p>
+      <p id="roleOutput"></p>
+    </div>
+   
+
+    <h3>Products</h3>
+    <input id="searchInput" type="text" placeholder="Search by name or category" oninput="searchProducts()" />
+    <button onclick="loadProducts()">View All</button>
+    <ul id="productList"></ul>
+    <div class="pagination" id="paginationControls"></div>
+
+    <div id="adminSection" class="admin-only hidden">
+      <h3>Add Product (Admin Only)</h3>
+      <form id="addProductForm">
+        <input name="name" placeholder="Name" required />
+        <input name="category" placeholder="Category" required />
+        <input name="price" type="number" placeholder="Price" required />
+        <input name="stock" type="number" placeholder="Stock" required />
+        <button type="submit">Add Product</button>
+      </form>
+    </div>
+
+    <h3>Add to Cart</h3>
+    <form id="addToCartForm">
+      <input name="product" placeholder="Product ID" required />
+      <input name="quantity" type="number" placeholder="Quantity" required />
+      <button type="submit">Add to Cart</button>
+    </form>
+
+    <h3>Your Cart</h3>
+    <button onclick="viewCart()">View Cart</button>
+    <ul id="cartList"></ul>
+
+    <h3>Place Order</h3>
+    <button onclick="placeOrder()">Place Order</button>
+
+    <h3>Your Orders</h3>
+    <button onclick="viewOrders()">View Orders</button>
+    <ul id="orderList"></ul>
+  </div>
+
+  <div id="output"></div>
+</div>
+
+<script>
+  const API = "http://localhost:3000";
+  let currentPage = 1;
+  const limit = 5;
+
+  const app = {
+    http: {
+      get: async (url) => {
+        const res = await fetch(API + url, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        });
+        return await res.json();
+      },
+      post: async (url, data) => {
+        const res = await fetch(API + url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+          body: JSON.stringify(data),
+        });
+        try {
+          return await res.json();
+        } catch {
+          return { error: "Invalid server response" };
+        }
+      },
+    },
+  };
+
+  function showOutput(msg, success = true) {
+    const out = document.getElementById("output");
+    out.style.backgroundColor = success ? "#e3f6ff" : "#ffe5e5";
+    out.textContent = msg;
+  }
+
+  document.getElementById("registerForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    const res = await app.http.post("/api/auth/register", payload);
+    showOutput(res.message || "Registered", !res.error);
+  };
+
+  document.getElementById("loginForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    const res = await app.http.post("/api/auth/login", payload);
+    if (res.token) {
+      localStorage.setItem("token", res.token);
+      localStorage.setItem("user", JSON.stringify(res.user || {}));
+      document.getElementById("authSection").classList.add("hidden");
+      document.getElementById("mainSection").classList.remove("hidden");
+      if (res.user?.role === "admin") {
+        document.getElementById("adminSection").classList.remove("hidden");
+      }
+      loadProducts();
+      showOutput("Login successful");
+    } else {
+      showOutput(res.error || "Login failed", false);
+    }
+  };
+
+  function logout() {
+    localStorage.clear();
+    location.reload();
+  }
+
+  async function loadProducts(page = 1, search = "") {
+    currentPage = page;
+    const query = `?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`;
+    const res = await app.http.get("/api/products" + query);
+    const ul = document.getElementById("productList");
+    ul.innerHTML = "";
+    (res.products || res).forEach(p => {
+      const li = document.createElement("li");
+      li.textContent = `${p.name} - ₹${p.price} - ${p.category} - ID: ${p._id}`;
+      ul.appendChild(li);
+    });
+    renderPagination(res.totalPages || 1);
+  }
+
+  function renderPagination(totalPages) {
+    const pagination = document.getElementById("paginationControls");
+    pagination.innerHTML = "";
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement("button");
+      btn.textContent = i;
+      btn.className = i === currentPage ? "active" : "";
+      btn.onclick = () => loadProducts(i);
+      pagination.appendChild(btn);
+    }
+  }
+
+  function searchProducts() {
+    const search = document.getElementById("searchInput").value;
+    loadProducts(1, search);
+  }
+
+  document.getElementById("addProductForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    const res = await app.http.post("/api/products", data);
+    showOutput(res.message || "Product added", !res.error);
+    if (!res.error) loadProducts();
+  };
+
+  document.getElementById("addToCartForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    const res = await app.http.post("/api/cart/add", {
+      productId: data.product,
+      quantity: +data.quantity
+    });
+    showOutput(res.message || "Added to cart", !res.error);
+  };
+
+  async function viewCart() {
+    const res = await app.http.get("/api/cart");
+    const ul = document.getElementById("cartList");
+    ul.innerHTML = "";
+    (res.items || []).forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.product.name} x ${item.quantity} = ₹${item.product.price * item.quantity}`;
+      ul.appendChild(li);
+    });
+  }
+
+  async function placeOrder() {
+    const res = await app.http.post("/api/orders/place", {});
+    showOutput(res.message || "Order placed", !res.error);
+    if (!res.error) document.getElementById("cartList").innerHTML = "";
+  }
+
+  async function viewOrders() {
+    const res = await app.http.get("/api/orders/my");
+    const ul = document.getElementById("orderList");
+    ul.innerHTML = "";
+    (res || []).forEach(order => {
+      const li = document.createElement("li");
+      li.textContent = `Order ID: ${order._id} - Items: ${order.items.length}`;
+      ul.appendChild(li);
+    });
+  }
+
+  // Auto-login check
+  if (localStorage.getItem("token")) {
+    const user = JSON.parse(localStorage.getItem("user"));
+    document.getElementById("authSection").classList.add("hidden");
+    document.getElementById("mainSection").classList.remove("hidden");
+    if (user.role === "admin") {
+      document.getElementById("adminSection").classList.remove("hidden");
+    }
+    loadProducts();
+  }
+</script>
+</body>
+</html> -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SnapCart Frontend</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 2rem; }
+    .container { max-width: 800px; margin: auto; background: #fff; padding: 2rem; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, select, button { margin: 0.5rem 0; padding: 0.5rem; width: 100%; }
+    .hidden { display: none; }
+    .admin { background: #ffe5e5; padding: 1rem; margin-top: 1rem; border: 1px solid #d33; }
+    .output { margin-top: 1rem; padding: 1rem; background: #e3f6ff; font-family: monospace; }
+    ul { padding-left: 1rem; }
+    .pagination button { margin: 0.25rem; padding: 0.5rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>SnapCart</h2>
+  <div id="auth">
+    <h3>Register</h3>
+    <form id="registerForm">
+      <input name="name" placeholder="Name" required />
+      <input name="email" type="email" placeholder="Email" required />
+      <input name="password" type="password" placeholder="Password" required />
+      <select name="role">
+        <option value="customer">Customer</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button type="submit">Register</button>
+    </form>
+
+    <h3>Login</h3>
+    <form id="loginForm">
+      <input name="email" type="email" placeholder="Email" required />
+      <input name="password" type="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <div id="main" class="hidden">
+    <button onclick="logout()">Logout</button>
+    <div class="output">
+      <div id="tokenOutput"></div>
+      <div id="roleOutput"></div>
+    </div>
+
+    <h3>Products</h3>
+    <input id="searchInput" placeholder="Search..." oninput="loadProducts()" />
+    <ul id="productList"></ul>
+    <div class="pagination" id="pagination"></div>
+
+    <div id="adminPanel" class="admin hidden">
+      <h3>Add Product</h3>
+      <form id="addProductForm">
+        <input name="name" placeholder="Name" required />
+        <input name="category" placeholder="Category" required />
+        <input name="price" type="number" placeholder="Price" required />
+        <input name="stock" type="number" placeholder="Stock" required />
+        <button type="submit">Add Product</button>
+      </form>
+    </div>
+
+    <h3>Add to Cart</h3>
+    <form id="addToCartForm">
+      <input name="product" placeholder="Product ID" required />
+      <input name="quantity" type="number" placeholder="Quantity" required />
+      <button type="submit">Add</button>
+    </form>
+
+    <h3>Your Cart</h3>
+    <button onclick="viewCart()">View Cart</button>
+    <ul id="cartList"></ul>
+
+    <h3>Orders</h3>
+    <button onclick="placeOrder()">Place Order</button>
+    <ul id="orderList"></ul>
+  </div>
+
+  <div id="output" class="output"></div>
+</div>
+
+<script>
+const API = "http://localhost:3000";
+const token = () => localStorage.getItem("token") || "";
+const role = () => JSON.parse(localStorage.getItem("user") || '{}').role;
+
+function show(msg, isError = false) {
+  const out = document.getElementById("output");
+  out.style.background = isError ? "#ffe5e5" : "#e3f6ff";
+  out.textContent = typeof msg === 'string' ? msg : JSON.stringify(msg);
+}
+
+function logout() {
+  localStorage.clear();
+  location.reload();
+}
+
+async function request(method, endpoint, data = {}) {
+  const res = await fetch(API + endpoint, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token()}`
+    },
+    body: method !== 'GET' ? JSON.stringify(data) : undefined
+  });
+  return await res.json();
+}
+
+// Auth
+registerForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(registerForm));
+  const res = await request("POST", "/api/auth/register", data);
+  show(res.message || res.error, res.error);
+};
+
+loginForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(loginForm));
+  const res = await request("POST", "/api/auth/login", data);
+  if (res.token) {
+    localStorage.setItem("token", res.token);
+    localStorage.setItem("user", JSON.stringify(res.user));
+    auth.classList.add("hidden");
+    main.classList.remove("hidden");
+    tokenOutput.textContent = res.token;
+    roleOutput.textContent = `Role: ${res.user.role}`;
+    if (res.user.role === "admin") adminPanel.classList.remove("hidden");
+    loadProducts();
+    show("Login successful");
+  } else show(res.error || "Login failed", true);
+};
+
+// Products
+let currentPage = 1;
+async function loadProducts(page = 1) {
+  currentPage = page;
+  const q = document.getElementById("searchInput").value;
+  const res = await request("GET", `/api/products?search=${q}&page=${page}&limit=5`);
+  const list = document.getElementById("productList");
+  list.innerHTML = "";
+  (res.products || []).forEach(p => {
+    const li = document.createElement("li");
+    li.textContent = `${p.name} - ₹${p.price} - ${p.category} (ID: ${p._id})`;
+    list.appendChild(li);
+  });
+  const pagination = document.getElementById("pagination");
+  pagination.innerHTML = "";
+  for (let i = 1; i <= (res.pages || 1); i++) {
+    const btn = document.createElement("button");
+    btn.textContent = i;
+    btn.onclick = () => loadProducts(i);
+    if (i === currentPage) btn.style.fontWeight = "bold";
+    pagination.appendChild(btn);
+  }
+}
+
+addProductForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(addProductForm));
+  const res = await request("POST", "/api/products", data);
+  show(res.message || res.error, res.error);
+  if (!res.error) loadProducts();
+};
+
+// Cart
+addToCartForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(addToCartForm));
+  data.quantity = +data.quantity;
+  const res = await request("POST", "/api/cart/add", data);
+  show(res.message || res.error, res.error);
+};
+
+async function viewCart() {
+  const res = await request("GET", "/api/cart");
+  const list = document.getElementById("cartList");
+  list.innerHTML = "";
+  (res.items || []).forEach(i => {
+    const li = document.createElement("li");
+    li.textContent = `${i.product.name} x ${i.quantity} = ₹${i.quantity * i.product.price}`;
+    list.appendChild(li);
+  });
+}
+
+async function placeOrder() {
+  const res = await request("POST", "/api/orders/place");
+  show(res.message || res.error, res.error);
+}
+
+// Auto-login
+if (token()) {
+  auth.classList.add("hidden");
+  main.classList.remove("hidden");
+  tokenOutput.textContent = token();
+  roleOutput.textContent = `Role: ${role()}`;
+  if (role() === "admin") adminPanel.classList.remove("hidden");
+  loadProducts();
+}
+</script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SnapCart Enhanced</title>
+  <style>
+    body { font-family: Arial,14px; background:#f5f5f5; padding:1rem; }
+    .container { max-width:900px; margin:auto; background:#fff; padding:1.5rem; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+    input, select, button { margin:0.5rem 0; padding:0.5rem; width:100%; }
+    .hidden { display:none; }
+    .admin { background:#ffe5e5; padding:1rem; border:1px solid #d33; margin:1rem 0; }
+    ul { list-style:none; padding-left:0; }
+    li { padding:0.5rem 0; border-bottom:1px solid #eee; }
+    .toast { position: fixed; bottom:1rem; right:1rem; background:#333; color:#fff; padding:1rem; border-radius:4px; opacity:0.9; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>SnapCart</h2>
+
+  <div id="authSection">
+    <h3>Register</h3>
+    <form id="registerForm">
+      <input name="name" placeholder="Name" required />
+      <input name="email" type="email" placeholder="Email" required />
+      <input name="password" type="password" placeholder="Password" required />
+      <select name="role">
+        <option value="customer">Customer</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button type="submit">Register</button>
+    </form>
+
+    <h3>Login</h3>
+    <form id="loginForm">
+      <input name="email" type="email" placeholder="Email" required />
+      <input name="password" type="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <div id="mainSection" class="hidden">
+    <button onclick="logout()">Logout</button>
+    <div><strong>Role:</strong> <span id="roleOutput"></span></div>
+
+    <hr />
+    <h3>Products</h3>
+    <input id="searchInput" placeholder="Search..." oninput="loadProducts()" />
+    <ul id="productList"></ul>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="hidden">
+      <h3>Manage Products</h3>
+      <form id="addProductForm">
+        <input name="name" placeholder="Name" required />
+        <input name="category" placeholder="Category" required />
+        <input name="price" type="number" placeholder="Price" required />
+        <input name="stock" type="number" placeholder="Stock" required />
+        <button type="submit">Add</button>
+      </form>
+    </div>
+
+    <!-- Customer Panel -->
+    <div id="customerPanel" class="hidden">
+      <hr />
+      <h3>Cart</h3>
+      <ul id="cartList"></ul>
+
+      <h4>Add to Cart</h4>
+      <form id="addToCartForm">
+        <input name="product" placeholder="Product ID" required />
+        <input name="quantity" type="number" placeholder="Qty" required />
+        <button type="submit">Add</button>
+      </form>
+      <button onclick="viewCart()">Refresh Cart</button>
+      <button onclick="placeOrder()">Place Order</button>
+
+      <hr />
+      <h3>Orders</h3>
+      <button onclick="viewOrders()">View My Orders</button>
+      <ul id="orderList"></ul>
+    </div>
+
+    <!-- Admin Orders -->
+    <div id="adminOrders" class="hidden">
+      <h3>All Orders (Admin)</h3>
+      <ul id="allOrdersList"></ul>
+    </div>
+  </div>
+</div>
+<script>
+const API = "https://snap-cart.onrender.com",
+  token = () => localStorage.token || "",
+  isAdmin = () => JSON.parse(localStorage.user || '{}').role === "admin";
+
+// Toast Notification
+function toast(msg, isError = false) {
+  const d = document.createElement("div");
+  d.className = "toast";
+  d.style.background = isError ? "#d33" : "#333";
+  d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(() => document.body.removeChild(d), 2000);
+}
+
+// API Request Helper
+async function req(method, url, body) {
+  const res = await fetch(API + url, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token()}`,
+    },
+    body: method !== "GET" ? JSON.stringify(body) : undefined,
+  });
+  return await res.json();
+}
+
+// Register
+registerForm.onsubmit = async e => {
+  e.preventDefault();
+  const res = await req("POST", "/api/auth/register", Object.fromEntries(new FormData(e.target)));
+  toast(res.message || res.error, !!res.error);
+};
+
+// Login
+loginForm.onsubmit = async e => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  const res = await req("POST", "/api/auth/login", data);
+
+  if (res.token) {
+    localStorage.token = res.token;
+    localStorage.user = JSON.stringify(res.user);
+    roleOutput.textContent = res.user.role;
+    authSection.classList.add("hidden");
+    mainSection.classList.remove("hidden");
+
+    if (isAdmin()) {
+      adminPanel.classList.remove("hidden");
+      customerPanel.classList.add("hidden");
+      loadAllOrders();
+    } else {
+      customerPanel.classList.remove("hidden");
+    }
+
+    loadProducts();
+    toast("Login successful");
+  } else {
+    toast(res.error, true);
+  }
+};
+
+function logout() {
+  localStorage.clear();
+  location.reload();
+}
+
+// Products
+let currentProducts = [];
+
+async function loadProducts() {
+  const q = searchInput.value;
+  const res = await req("GET", `/api/products?search=${encodeURIComponent(q)}&page=1&limit=50`);
+  productList.innerHTML = "";
+  currentProducts = res.products || [];
+
+  currentProducts.forEach(p => {
+    const li = document.createElement("li");
+    li.textContent = `ID: ${p._id} | ${p.name} - ₹${p.price}`;
+    productList.appendChild(li);
+  });
+}
+
+addProductForm.onsubmit = async e => {
+  e.preventDefault();
+  const res = await req("POST", "/api/products", Object.fromEntries(new FormData(e.target)));
+  toast(res.message || res.error, !!res.error);
+  if (!res.error) loadProducts();
+  e.target.reset();
+};
+
+// Cart
+addToCartForm.onsubmit = async e => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  const productId = data.product.trim();
+  const quantity = Number(data.quantity);
+  const res = await req("POST", "/api/cart/add", { product: productId, quantity });
+  toast(res.message || res.error, !!res.error);
+  if (!res.error) {
+    e.target.reset();
+    viewCart();
+  }
+};
+
+async function viewCart() {
+  const res = await req("GET", "/api/cart");
+  cartList.innerHTML = "";
+
+  if (!res.items || res.items.length === 0) {
+    toast("Cart is empty");
+    return;
+  }
+
+  res.items.forEach(i => {
+    const li = document.createElement("li");
+    li.innerHTML = `${i.product.name} x <input type="number" value="${i.quantity}" min="1" style="width:50px" onchange="updateCart('${i.product._id}',this.value)"> = ₹${i.product.price * i.quantity}
+      <button onclick="removeCart('${i.product._id}')">🗑️</button>`;
+    cartList.appendChild(li);
+  });
+  toast("Cart loaded");
+}
+
+async function updateCart(pid, qty) {
+  const res = await req("PUT", "/api/cart/update", { product: pid, quantity: +qty });
+  toast(res.message || res.error, !!res.error);
+  viewCart();
+}
+
+async function removeCart(pid) {
+  const res = await req("DELETE", "/api/cart/remove", { product: pid });
+  toast(res.message || res.error, !!res.error);
+  viewCart();
+}
+
+// Orders
+async function placeOrder() {
+  const res = await req("POST", "/api/orders/place", {});
+  toast(res.message || res.error, !!res.error);
+  if (!res.error) {
+    viewCart();
+    viewOrders();
+    if (isAdmin()) loadAllOrders();
+  }
+}
+
+async function viewOrders() {
+  const res = await req("GET", "/api/orders/my");
+  orderList.innerHTML = "";
+
+  if (!res.orders || !res.orders.length) return toast("No personal orders");
+
+  res.orders.forEach(o => {
+    const li = document.createElement("li");
+    li.innerHTML = `Order ${o._id} ₹${o.totalAmount}
+      <ul>${o.products.map(p => `<li>${p.product.name} x ${p.quantity}</li>`).join("")}</ul>`;
+    orderList.appendChild(li);
+  });
+  toast("Fetched your orders");
+}
+
+// Admin
+async function loadAllOrders() {
+  const res = await req("GET", "/api/orders/my?all=true");
+  allOrdersList.innerHTML = "";
+  (res.orders || []).forEach(o => {
+    const li = document.createElement("li");
+    li.innerHTML = `User ${o.user} → Order ${o._id} ₹${o.totalAmount}
+      <ul>${o.products.map(p => `<li>${p.product.name} x ${p.quantity}</li>`).join("")}</ul>`;
+    allOrdersList.appendChild(li);
+  });
+}
+
+// Auto Login
+if (token()) {
+  authSection.classList.add("hidden");
+  mainSection.classList.remove("hidden");
+  const user = JSON.parse(localStorage.user);
+  roleOutput.textContent = user.role;
+
+  if (isAdmin()) {
+    adminPanel.classList.remove("hidden");
+    customerPanel.classList.add("hidden");
+    loadAllOrders();
+  } else {
+    customerPanel.classList.remove("hidden");
+  }
+
+  loadProducts();
+}
+</script>
+</body>
 </html>
+
+
